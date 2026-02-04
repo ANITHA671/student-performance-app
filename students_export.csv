@@ -1,0 +1,2 @@
+student_id,first_name,last_name,gender,math_score,reading_score,writing_score,average_score,grade,pass_fail
+1,Anitha,Sagar,Female,90,49,51,63.3333,C,Pass

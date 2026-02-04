@@ -3,7 +3,45 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from db import get_connection
+import mysql.connector
+from mysql.connector import Error
+
+# ----------------- Database Config -----------------
+DB_NAME = "student_db"
+DB_USER = "student_user"
+DB_PASSWORD = "12345678"
+DB_HOST = "localhost"
+
+def get_connection():
+    """Establish a connection to MySQL and ensure the 'students' table exists."""
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = conn.cursor()
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS students (
+            student_id INT AUTO_INCREMENT PRIMARY KEY,
+            first_name VARCHAR(50),
+            last_name VARCHAR(50),
+            gender VARCHAR(10),
+            math_score INT,
+            reading_score INT,
+            writing_score INT,
+            average_score FLOAT,
+            grade VARCHAR(2),
+            pass_fail VARCHAR(10)
+        )
+        """)
+        conn.commit()
+        cursor.close()
+        return conn
+    except Error as e:
+        st.error(f"❌ Error connecting to MySQL: {e}")
+        return None
 
 # ----------------- Page Config -----------------
 st.set_page_config(
@@ -15,13 +53,7 @@ st.set_page_config(
 
 # ----------------- Sidebar Navigation -----------------
 st.sidebar.title("📚 Student App")
-menu = [
-    "🏠 Home",
-    "➕ Add Student",
-    "📋 View / Update / Delete",
-    "📊 Charts",
-    "💾 Export CSV"
-]
+menu = ["🏠 Home","➕ Add Student","📋 View / Update / Delete","📊 Charts","💾 Export CSV"]
 choice = st.sidebar.radio("Navigation", menu)
 
 # ----------------- Home -----------------
@@ -33,7 +65,7 @@ if choice == "🏠 Home":
     - Visualize performance with charts
     - Export records to CSV for reports
     """)
-    st.image("https://cdn-icons-png.flaticon.com/512/3135/3135715.png", width=150)  # Optional decorative image
+    st.image("https://cdn-icons-png.flaticon.com/512/3135/3135715.png", width=150)
 
 # ----------------- Add Student -----------------
 elif choice == "➕ Add Student":
@@ -65,8 +97,6 @@ elif choice == "➕ Add Student":
                 cursor.close()
                 conn.close()
                 st.success(f"✅ Student {first_name} {last_name} added successfully!")
-            else:
-                st.error("❌ Database connection failed!")
 
 # ----------------- View / Update / Delete -----------------
 elif choice == "📋 View / Update / Delete":
@@ -115,8 +145,6 @@ elif choice == "📋 View / Update / Delete":
         else:
             st.info("No student records found.")
         conn.close()
-    else:
-        st.error("❌ Database connection failed!")
 
 # ----------------- Charts -----------------
 elif choice == "📊 Charts":
@@ -127,11 +155,9 @@ elif choice == "📊 Charts":
         conn.close()
         if not df.empty:
             col1, col2 = st.columns(2)
-
             with col1:
                 st.subheader("Average Marks per Subject")
                 st.bar_chart(df[["math_score","reading_score","writing_score"]].mean())
-
             with col2:
                 st.subheader("Pass vs Fail")
                 counts = df["pass_fail"].value_counts()
@@ -145,8 +171,6 @@ elif choice == "📊 Charts":
             st.pyplot(fig2)
         else:
             st.info("No data to display charts.")
-    else:
-        st.error("❌ Database connection failed!")
 
 # ----------------- Export CSV -----------------
 elif choice == "💾 Export CSV":
@@ -161,5 +185,3 @@ elif choice == "💾 Export CSV":
             st.download_button("Download CSV", data=open("students_export.csv","rb"), file_name="students_export.csv")
         else:
             st.info("No data to export.")
-    else:
-        st.error("❌ Database connection failed!")
